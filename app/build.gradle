@@ -9,6 +9,15 @@ android {
     compileSdkVersion 30
     buildToolsVersion "30.0.3"
 
+    signingConfigs {
+        release {
+            storeFile file("release_keystore.jks")
+            storePassword '123456'
+            keyAlias 'keystore'
+            keyPassword '123456'
+        }
+    }
+
     defaultConfig {
         applicationId "com.edipasquale.todo"
         minSdkVersion 21
@@ -16,21 +25,52 @@ android {
         versionCode 1
         versionName "1.0"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        testInstrumentationRunner "com.edipasquale.todo.runner.KoinTestRunner"
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled true
+            debuggable false
+            testCoverageEnabled false
+            signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "String", 'SERVER_URL', "\"https://380odjc5vi.execute-api.us-east-1.amazonaws.com/dev/graphql\""
+            buildConfigField "String", 'API_KEY', "\"67faa483-4afe-4397-b3ec-a183f294a382\""
+            buildConfigField "String", 'USER_NAME', "\"Ezequiel\""
+        }
+
+        debug {
+            minifyEnabled false
+            debuggable true
+            testCoverageEnabled true
+            buildConfigField "String", 'SERVER_URL', "\"https://staging.com/graphql\""
+            buildConfigField "String", 'API_KEY', "\"67faa483-4afe-4397-b3ec-a183f294a382\""
+            buildConfigField "String", 'USER_NAME', "\"Ezequiel\""
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
     }
+
     kotlinOptions {
         jvmTarget = '1.8'
+    }
+
+    testOptions {
+        animationsDisabled true
+
+        unitTests {
+            includeAndroidResources = true
+            returnDefaultValues = true
+        }
+    }
+
+    buildFeatures {
+        dataBinding true
+        viewBinding true
     }
 
     apollo {
