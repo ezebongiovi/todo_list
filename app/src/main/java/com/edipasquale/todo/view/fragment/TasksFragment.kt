@@ -56,11 +56,14 @@ class TasksFragment : AuthFragment() {
         })
 
         _viewModel.error.observe(viewLifecycleOwner, { error ->
+            _binding.refreshLayout.isRefreshing = false
+
+            if (error == null)
+                return@observe
+
             showErrorMmessage(
                 error.errorDescription ?: getString(R.string.error_unknown_fetch_tasks)
             )
-
-            _binding.refreshLayout.isRefreshing = false
         })
     }
 

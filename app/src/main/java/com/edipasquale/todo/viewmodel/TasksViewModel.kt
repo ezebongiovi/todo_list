@@ -9,6 +9,7 @@ import com.edipasquale.todo.dto.APIResult
 import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
 import com.edipasquale.todo.repository.TasksRepository
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 
@@ -22,7 +23,7 @@ class TasksViewModel(
             handleResult(it)
         }
 
-    fun pullToRefresh() = viewModelScope.launch {
+    fun pullToRefresh() = viewModelScope.launch(Dispatchers.IO) {
         _repository.getTasksFromServer().collect {
             _error.postValue(it)
         }
