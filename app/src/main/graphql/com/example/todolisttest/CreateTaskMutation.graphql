@@ -1,0 +1,8 @@
+mutation CreateTaskMutation($name: String!, $note: String!, $isDone: Boolean!) {
+  createTask(name:$name, note: $note, isDone:$isDone) {
+    id
+    name
+    note
+    isDone
+  }
+}

@@ -1,0 +1,8 @@
+mutation UpdateTaskStatus($id: String!, $isDone: Boolean!) {
+    updateTaskStatus(id: $id, isDone: $isDone) {
+        id
+        name
+        note
+        isDone
+    }
+}

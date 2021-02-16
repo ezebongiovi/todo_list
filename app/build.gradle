@@ -2,6 +2,7 @@ plugins {
     id 'com.android.application'
     id 'kotlin-android'
     id "kotlin-kapt"
+    id("com.apollographql.apollo").version("${apollo_version}")
 }
 
 android {
@@ -30,6 +31,10 @@ android {
     }
     kotlinOptions {
         jvmTarget = '1.8'
+    }
+
+    apollo {
+        generateKotlinModels = true
     }
 }
 
