@@ -15,10 +15,12 @@ import com.edipasquale.todo.dto.Success
 import com.edipasquale.todo.source.local.LocalSource
 import com.edipasquale.todo.source.network.GraphQLSource
 import com.example.todolisttest.CreateTaskMutation
+import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.flow.flowOf
+import org.junit.After
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -36,9 +38,9 @@ class CreateTaskWorkerTest {
         _koinApp = ApplicationProvider.getApplicationContext()
 
         _koinApp.setUpModule(module {
-            single { _mockLocalSource }
+            single(override = true) { _mockLocalSource }
 
-            single { _mockRemoteSource }
+            single(override = true) { _mockRemoteSource }
         })
     }
 
