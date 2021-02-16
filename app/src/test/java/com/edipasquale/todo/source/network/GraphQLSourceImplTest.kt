@@ -51,7 +51,7 @@ class GraphQLSourceImplTest {
     }
 
     @Test
-    fun `QUERY Response null data with top level error case `() = runBlocking {
+    fun `QUERY Response null data with top level error case`() = runBlocking {
         // Object under test
         val source = GraphQLSourceImpl(_mockedClient)
 
