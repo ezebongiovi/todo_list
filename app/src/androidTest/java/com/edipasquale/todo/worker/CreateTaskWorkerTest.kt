@@ -14,7 +14,7 @@ import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
 import com.edipasquale.todo.source.local.LocalSource
 import com.edipasquale.todo.source.network.GraphQLSource
-import com.example.todolisttest.CreateTaskMutation
+import com.example.todolist.CreateTaskMutation
 import io.mockk.clearAllMocks
 import io.mockk.every
 import io.mockk.mockk
@@ -38,9 +38,9 @@ class CreateTaskWorkerTest {
         _koinApp = ApplicationProvider.getApplicationContext()
 
         _koinApp.setUpModule(module {
-            single(override = true) { _mockLocalSource }
+            factory(override = true) { _mockLocalSource }
 
-            single(override = true) { _mockRemoteSource }
+            factory(override = true) { _mockRemoteSource }
         })
     }
 
@@ -88,7 +88,8 @@ class CreateTaskWorkerTest {
             Stub response from remote source to a success response
          */
         every { _mockRemoteSource.executeMutation(any<Mutation<Operation.Data, CreateTaskMutation.Data, Operation.Variables>>()) }  returns flowOf(
-            Success(CreateTaskMutation.Data(
+            Success(
+                CreateTaskMutation.Data(
                 createTask = CreateTaskMutation.CreateTask(
                     id = "",
                     name = "",

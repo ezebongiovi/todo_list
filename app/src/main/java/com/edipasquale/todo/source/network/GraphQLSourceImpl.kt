@@ -5,33 +5,41 @@ import com.apollographql.apollo.api.Mutation
 import com.apollographql.apollo.api.Operation
 import com.apollographql.apollo.api.Query
 import com.apollographql.apollo.api.Response
-import com.apollographql.apollo.coroutines.toFlow
+import com.apollographql.apollo.coroutines.await
 import com.apollographql.apollo.exception.ApolloException
 import com.edipasquale.todo.dto.APIError
 import com.edipasquale.todo.dto.APIResult
 import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.flow
 
 @ExperimentalCoroutinesApi
 open class GraphQLSourceImpl(private val apolloClient: ApolloClient) : GraphQLSource {
 
     override fun <Q : Query<out Operation.Data, T, out Operation.Variables>, T : Any> executeQuery(
         query: Q
-    ) = apolloClient.query(query)
-        .toFlow()
-        .map {
-            handleResponse(it)
+    ) = flow {
+        try {
+            val response = apolloClient.query(query).await()
+
+            emit(handleResponse(response))
+        } catch (e: Exception) {
+            emit(Failure(APIError.fromException(e)))
         }
+    }
 
     override fun <Q : Mutation<out Operation.Data, T, out Operation.Variables>, T : Any> executeMutation(
         mutation: Q
-    ) = apolloClient.mutate(mutation)
-        .toFlow()
-        .map {
-            handleResponse(it)
+    ) = flow {
+        try {
+            val response = apolloClient.mutate(mutation).await()
+
+            emit(handleResponse(response))
+        } catch (e: Exception) {
+            emit(Failure(APIError.fromException(e)))
         }
+    }
 
     /**
      * Applies business logic to the response. Handling error responses and invalid data

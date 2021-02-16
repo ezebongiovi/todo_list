@@ -7,7 +7,7 @@ import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
 import com.edipasquale.todo.source.local.LocalSource
 import com.edipasquale.todo.source.network.GraphQLSource
-import com.example.todolisttest.CreateTaskMutation
+import com.example.todolist.CreateTaskMutation
 import kotlinx.coroutines.flow.first
 import org.koin.java.KoinJavaComponent
 

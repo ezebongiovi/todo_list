@@ -44,7 +44,7 @@ android {
             minifyEnabled false
             debuggable true
             testCoverageEnabled true
-            buildConfigField "String", 'SERVER_URL', "\"https://staging.com/graphql\""
+            buildConfigField "String", 'SERVER_URL', "\"https://380odjc5vi.execute-api.us-east-1.amazonaws.com/dev/graphql\""
             buildConfigField "String", 'API_KEY', "\"67faa483-4afe-4397-b3ec-a183f294a382\""
             buildConfigField "String", 'USER_NAME', "\"Ezequiel\""
         }
@@ -96,6 +96,9 @@ dependencies {
     implementation "org.koin:koin-androidx-compose:$koin_version"
     // Koin AndroidX Experimental features
     implementation "org.koin:koin-androidx-ext:$koin_version"
+
+    // Swipe to refresh layout
+    implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0"
 
     // Work Manager
     implementation "androidx.work:work-runtime-ktx:$work_version"

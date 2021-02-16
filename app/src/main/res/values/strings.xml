@@ -9,4 +9,10 @@
 
     <string name="hello_first_fragment">Hello first fragment</string>
     <string name="hello_second_fragment">Hello second fragment. Arg: %1$s</string>
+    <string name="error_unknown_fetch_tasks">Couldn\'t fetch tasks from server</string>
+    <string name="button_create_task">Create task</string>
+    <string name="hint_task_note">Task note</string>
+    <string name="hint_task_name">Task name</string>
+    <string name="error_auth">Couldn\'t authenticate app</string>
+    <string name="error_network">Network error</string>
 </resources>

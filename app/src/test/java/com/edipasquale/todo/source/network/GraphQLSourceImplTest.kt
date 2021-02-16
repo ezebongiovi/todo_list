@@ -4,15 +4,13 @@ import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.ApolloMutationCall
 import com.apollographql.apollo.ApolloQueryCall
 import com.apollographql.apollo.api.*
+import com.apollographql.apollo.coroutines.await
 import com.apollographql.apollo.coroutines.toFlow
 import com.edipasquale.todo.dto.ERROR_GRAPHQL
 import com.edipasquale.todo.dto.ERROR_UNKNOWN
 import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.mockkStatic
-import io.mockk.spyk
+import io.mockk.*
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
@@ -171,7 +169,7 @@ class GraphQLSourceImplTest {
         every { _mockedClient.query(query) } returns mockedCallback
 
         // Stub callback result to a response without errors or data
-        every { mockedCallback.toFlow() } returns flowOf(response)
+        coEvery { mockedCallback.await() } coAnswers { response }
     }
 
     private fun <T> mockMutationResponse(mutation: Mutation<Operation.Data, T, Operation.Variables>, response: Response<T>) {
@@ -182,6 +180,6 @@ class GraphQLSourceImplTest {
         every { _mockedClient.mutate(mutation) } returns mockedCallback
 
         // Stub callback result to a response without errors or data
-        every { mockedCallback.toFlow() } returns flowOf(response)
+        coEvery { mockedCallback.await() } coAnswers { response }
     }
 }
