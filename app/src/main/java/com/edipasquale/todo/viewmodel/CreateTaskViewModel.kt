@@ -7,7 +7,6 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.edipasquale.todo.db.entity.TaskEntity
 import com.edipasquale.todo.repository.TasksRepository
-import com.edipasquale.todo.worker.CreateTaskWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -25,10 +24,8 @@ class CreateTaskViewModel(
             note = note
         )
 
-        _repository.createTask(entity)
+        _repository.createTasks(entity)
 
         _taskCreation.postValue(entity)
-
-        CreateTaskWorker.schedule(getApplication())
     }
 }

@@ -42,7 +42,7 @@ class CreateTaskWorker(
                     note = task.note,
                     isDone = task.isDone
                 )
-            ).first()
+            )
 
             when (response) {
                 is Success -> {

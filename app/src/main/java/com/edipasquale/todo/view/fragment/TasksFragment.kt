@@ -25,7 +25,7 @@ class TasksFragment : AuthFragment() {
     ): View {
         _binding = FragmentTasksBinding.inflate(inflater, container, false)
 
-        _binding.fab.setOnClickListener { view ->
+        _binding.fab.setOnClickListener {
             findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
         }
 

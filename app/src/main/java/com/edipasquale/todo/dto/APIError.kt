@@ -17,10 +17,6 @@ class APIError(
             return APIError(ERROR_GRAPHQL, error.message)
         }
 
-        fun fromApolloErrorMessage(message: String): APIError {
-            return APIError(ERROR_GRAPHQL, message)
-        }
-
         fun fromException(exception: Exception): APIError {
             return if (exception is ApolloNetworkException)
                 APIError(ERROR_NETWORK)

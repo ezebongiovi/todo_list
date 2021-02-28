@@ -12,13 +12,8 @@ import com.edipasquale.todo.ext.getOrAwaitValue
 import com.edipasquale.todo.source.local.LocalSource
 import com.edipasquale.todo.source.network.GraphQLSource
 import com.example.todolist.GetAllTasksQuery
-import io.mockk.every
-import io.mockk.mockk
-import io.mockk.verify
+import io.mockk.*
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.flow.firstOrNull
-import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.*
 import org.junit.*
 
@@ -45,14 +40,13 @@ class TasksRepositoryTest {
     fun createTask() = _testCoroutineScope.runBlockingTest {
         val repository = TasksRepository(
             _mockedLocalSource,
-            _mockedRemoteSource,
-            _testCoroutineDispatcher
+            _mockedRemoteSource
         )
 
         // Stub local response
         every { _mockedLocalSource.createTasks(any()) } returns Unit
 
-        repository.createTask(TaskEntity(name = ""))
+        repository.createTasks(TaskEntity(name = ""))
 
         verify(exactly = 1) { _mockedLocalSource.createTasks(any()) }
     }
@@ -61,8 +55,7 @@ class TasksRepositoryTest {
     fun `Get empty list of tasks from local only`() = _testCoroutineScope.runBlockingTest {
         val repository = TasksRepository(
             _mockedLocalSource,
-            _mockedRemoteSource,
-            _testCoroutineDispatcher
+            _mockedRemoteSource
         )
 
         // Stub local response
@@ -72,15 +65,14 @@ class TasksRepositoryTest {
 
         repository.getTasks(done = true).getOrAwaitValue()
 
-        verify(exactly = 0) { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, Any, Operation.Variables>>()) }
+        coVerify(exactly = 0) { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, Any, Operation.Variables>>()) }
     }
 
     @Test
     fun `Force refresh Success`() = _testCoroutineScope.runBlockingTest {
         val repository = TasksRepository(
             _mockedLocalSource,
-            _mockedRemoteSource,
-            _testCoroutineDispatcher
+            _mockedRemoteSource
         )
 
         // Stub local response
@@ -95,35 +87,22 @@ class TasksRepositoryTest {
         every { _mockedLocalSource.createTasks(any()) } returns Unit
 
         // Stubs a response from server with a list of items
-        every { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, GetAllTasksQuery.Data, Operation.Variables>>()) } returns flowOf(
-            Success(
-                GetAllTasksQuery.Data(
-                    allTasks = listOf(
-                        GetAllTasksQuery.AllTask(
-                            __typename = "",
-                            name = "",
-                            id = "",
-                            isDone = false,
-                            note = ""
-                        )
-                    )
-                )
-            )
-        )
+        coEvery { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, GetAllTasksQuery.Data, Operation.Variables>>()) } coAnswers {
+            networkSuccessAnswer()
+        }
 
-        val result = repository.getTasksFromServer().firstOrNull()
+        val result = repository.getTasksFromNetwork()
 
         Assert.assertNull(result)
 
-        verify(exactly = 1) { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, Any, Operation.Variables>>()) }
+        coVerify(exactly = 1) { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, Any, Operation.Variables>>()) }
     }
 
     @Test
     fun `Force refresh Error`() = _testCoroutineScope.runBlockingTest {
         val repository = TasksRepository(
             _mockedLocalSource,
-            _mockedRemoteSource,
-            _testCoroutineDispatcher
+            _mockedRemoteSource
         )
 
         // Stub local response
@@ -138,14 +117,30 @@ class TasksRepositoryTest {
         every { _mockedLocalSource.createTasks(any()) } returns Unit
 
         // Stubs a response from server with a list of items
-        every { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, GetAllTasksQuery.Data, Operation.Variables>>()) } returns flowOf(
+        coEvery { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, GetAllTasksQuery.Data, Operation.Variables>>()) } coAnswers {
             Failure(APIError("Error"))
-        )
+        }
 
-        val result = repository.getTasksFromServer().firstOrNull()
+        val result = repository.getTasksFromNetwork()
 
         Assert.assertNotNull(result)
 
-        verify(exactly = 1) { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, Any, Operation.Variables>>()) }
+        coVerify(exactly = 1) { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, Any, Operation.Variables>>()) }
+    }
+
+    private fun networkSuccessAnswer(): Success<GetAllTasksQuery.Data> {
+        return Success(
+            GetAllTasksQuery.Data(
+                allTasks = listOf(
+                    GetAllTasksQuery.AllTask(
+                        __typename = "",
+                        name = "",
+                        id = "",
+                        isDone = false,
+                        note = ""
+                    )
+                )
+            )
+        )
     }
 }

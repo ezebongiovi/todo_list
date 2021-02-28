@@ -14,16 +14,16 @@ interface GraphQLSource {
      *
      * @param query
      */
-    fun <Q : Query<out Operation.Data, T, out Operation.Variables>, T : Any> executeQuery(
+    suspend fun <Q : Query<out Operation.Data, T, out Operation.Variables>, T : Any> executeQuery(
         query: Q
-    ): Flow<APIResult<T, APIError>>
+    ): APIResult<T, APIError>
 
     /**
      * Executes a [Mutation] and maps the response into [APIResult]
      *
      * @param mutation
      */
-    fun <Q : Mutation<out Operation.Data, T, out Operation.Variables>, T : Any> executeMutation(
+    suspend fun <Q : Mutation<out Operation.Data, T, out Operation.Variables>, T : Any> executeMutation(
         mutation: Q
-    ): Flow<APIResult<T, APIError>>
+    ): APIResult<T, APIError>
 }

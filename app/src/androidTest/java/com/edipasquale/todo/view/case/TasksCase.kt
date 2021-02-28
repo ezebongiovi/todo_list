@@ -2,6 +2,7 @@ package com.edipasquale.todo.view.case
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -54,9 +55,9 @@ class TasksCase {
             viewModel(override = true) { CreateTaskViewModel(androidApplication(), _mockRepository) }
         })
 
-        every { _mockRepository.getTasks(any()) } returns MutableLiveData<Success<List<TaskEntity>>>().apply {
-            value =  Success(emptyList())
-        }
+        every { _mockRepository.getTasks(any()) } returns MutableLiveData<List<TaskEntity>>().apply {
+            value =  emptyList()
+        } as LiveData<List<TaskEntity>>
 
         val mockedOperation = mockk<Mutation<Operation.Data, GenerateAccessTokenMutation.Data, Operation.Variables>>()
 

@@ -36,7 +36,7 @@ android {
             signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "String", 'SERVER_URL', "\"https://380odjc5vi.execute-api.us-east-1.amazonaws.com/dev/graphql\""
-            buildConfigField "String", 'API_KEY', "\"67faa483-4afe-4397-b3ec-a183f294a382\""
+            buildConfigField "String", 'API_KEY', "\"54fd28af-5687-47d1-bd2f-bc23b7c6f675\""
             buildConfigField "String", 'USER_NAME', "\"Ezequiel\""
         }
 
@@ -45,7 +45,7 @@ android {
             debuggable true
             testCoverageEnabled true
             buildConfigField "String", 'SERVER_URL', "\"https://380odjc5vi.execute-api.us-east-1.amazonaws.com/dev/graphql\""
-            buildConfigField "String", 'API_KEY', "\"67faa483-4afe-4397-b3ec-a183f294a382\""
+            buildConfigField "String", 'API_KEY', "\"54fd28af-5687-47d1-bd2f-bc23b7c6f675\""
             buildConfigField "String", 'USER_NAME', "\"Ezequiel\""
         }
     }

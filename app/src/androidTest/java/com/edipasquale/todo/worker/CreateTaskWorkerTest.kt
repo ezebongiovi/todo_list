@@ -15,12 +15,10 @@ import com.edipasquale.todo.dto.Success
 import com.edipasquale.todo.source.local.LocalSource
 import com.edipasquale.todo.source.network.GraphQLSource
 import com.example.todolist.CreateTaskMutation
-import io.mockk.clearAllMocks
+import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.verify
-import kotlinx.coroutines.flow.flowOf
-import org.junit.After
 import org.junit.Assert
 import org.junit.Before
 import org.junit.Test
@@ -30,7 +28,7 @@ import org.koin.dsl.module
 @RunWith(AndroidJUnit4::class)
 class CreateTaskWorkerTest {
     private lateinit var _koinApp: KoinTestApp
-    private val _mockLocalSource : LocalSource = mockk()
+    private val _mockLocalSource: LocalSource = mockk()
     private val _mockRemoteSource: GraphQLSource = mockk()
 
     @Before
@@ -59,7 +57,7 @@ class CreateTaskWorkerTest {
         Assert.assertTrue(result is ListenableWorker.Result.Success)
 
         // We verify that the remote source has not been called. Since there's nothing to upload
-        verify(exactly = 0) { _mockRemoteSource.executeMutation(any<Mutation<Operation.Data, Any, Operation.Variables>>()) }
+        coVerify(exactly = 0) { _mockRemoteSource.executeMutation(any<Mutation<Operation.Data, Any, Operation.Variables>>()) }
     }
 
     @Test
@@ -87,24 +85,25 @@ class CreateTaskWorkerTest {
         /*
             Stub response from remote source to a success response
          */
-        every { _mockRemoteSource.executeMutation(any<Mutation<Operation.Data, CreateTaskMutation.Data, Operation.Variables>>()) }  returns flowOf(
+        coEvery { _mockRemoteSource.executeMutation(any<Mutation<Operation.Data, CreateTaskMutation.Data, Operation.Variables>>()) } coAnswers {
             Success(
                 CreateTaskMutation.Data(
-                createTask = CreateTaskMutation.CreateTask(
-                    id = "",
-                    name = "",
-                    note = "",
-                    isDone = false
+                    createTask = CreateTaskMutation.CreateTask(
+                        id = "",
+                        name = "",
+                        note = "",
+                        isDone = false
+                    )
                 )
-            ))
-        )
+            )
+        }
 
         val result = worker.startWork().get()
 
         Assert.assertTrue(result is ListenableWorker.Result.Success)
 
         // We verify that the remote source has been called. Since there are tasks to upload
-        verify(exactly = 1) { _mockRemoteSource.executeMutation(any<Mutation<Operation.Data, CreateTaskMutation.Data, Operation.Variables>>()) }
+        coVerify(exactly = 1) { _mockRemoteSource.executeMutation(any<Mutation<Operation.Data, CreateTaskMutation.Data, Operation.Variables>>()) }
     }
 
     @Test
@@ -137,9 +136,9 @@ class CreateTaskWorkerTest {
             errorDescription = "Some description"
         )
 
-        every { _mockRemoteSource.executeMutation(any<Mutation<Operation.Data, CreateTaskMutation.Data, Operation.Variables>>()) }  returns flowOf(
+        coEvery { _mockRemoteSource.executeMutation(any<Mutation<Operation.Data, CreateTaskMutation.Data, Operation.Variables>>()) } coAnswers {
             Failure(expectedError)
-        )
+        }
 
         val result = worker.startWork().get()
 
@@ -147,6 +146,6 @@ class CreateTaskWorkerTest {
         Assert.assertTrue(result is ListenableWorker.Result.Retry)
 
         // We verify that the remote source has been called. Since there are tasks to upload
-        verify(exactly = 1) { _mockRemoteSource.executeMutation(any<Mutation<Operation.Data, CreateTaskMutation.Data, Operation.Variables>>()) }
+        coVerify(exactly = 1) { _mockRemoteSource.executeMutation(any<Mutation<Operation.Data, CreateTaskMutation.Data, Operation.Variables>>()) }
     }
 }
