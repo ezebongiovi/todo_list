@@ -5,16 +5,20 @@ plugins {
     id("com.apollographql.apollo").version("${apollo_version}")
 }
 
+def secretsFile = rootProject.file("secrets.properties");
+def secretProperties = new Properties()
+secretProperties.load(new FileInputStream(secretsFile))
+
 android {
     compileSdkVersion 30
     buildToolsVersion "30.0.3"
 
     signingConfigs {
         release {
-            storeFile file("release_keystore.jks")
-            storePassword '123456'
-            keyAlias 'keystore'
-            keyPassword '123456'
+            storeFile file(secretProperties["storeFile"])
+            storePassword secretProperties["storePassword"]
+            keyAlias secretProperties["keyAlias"]
+            keyPassword secretProperties["keyPassword"]
         }
     }
 
@@ -36,8 +40,8 @@ android {
             signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "String", 'SERVER_URL', "\"https://380odjc5vi.execute-api.us-east-1.amazonaws.com/dev/graphql\""
-            buildConfigField "String", 'API_KEY', "\"54fd28af-5687-47d1-bd2f-bc23b7c6f675\""
-            buildConfigField "String", 'USER_NAME', "\"Ezequiel\""
+            buildConfigField "String", 'API_KEY', secretProperties["apikey"]
+            buildConfigField "String", 'USER_NAME', secretProperties["userName"]
         }
 
         debug {
@@ -45,8 +49,8 @@ android {
             debuggable true
             testCoverageEnabled true
             buildConfigField "String", 'SERVER_URL', "\"https://380odjc5vi.execute-api.us-east-1.amazonaws.com/dev/graphql\""
-            buildConfigField "String", 'API_KEY', "\"54fd28af-5687-47d1-bd2f-bc23b7c6f675\""
-            buildConfigField "String", 'USER_NAME', "\"Ezequiel\""
+            buildConfigField "String", 'API_KEY', secretProperties["apikey"]
+            buildConfigField "String", 'USER_NAME', secretProperties["userName"]
         }
     }
 
