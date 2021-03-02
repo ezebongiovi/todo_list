@@ -9,9 +9,9 @@ import com.edipasquale.todo.db.TaskDao
 import com.edipasquale.todo.db.TaskDatabase
 import com.edipasquale.todo.repository.AuthRepository
 import com.edipasquale.todo.repository.TasksRepository
-import com.edipasquale.todo.source.local.LocalSource
-import com.edipasquale.todo.source.local.LocalSourceImpl
-import com.edipasquale.todo.source.network.GraphQLSource
+import com.edipasquale.todo.source.NetworkTasksSource
+import com.edipasquale.todo.source.local.LocalTasksSource
+import com.edipasquale.todo.source.local.RoomSourceImpl
 import com.edipasquale.todo.source.network.GraphQLSourceImpl
 import com.edipasquale.todo.source.network.interceptor.AuthInterceptor
 import com.edipasquale.todo.viewmodel.AuthViewModel
@@ -24,41 +24,38 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.androidx.viewmodel.dsl.viewModel
 import org.koin.core.context.startKoin
 import org.koin.core.qualifier.named
+import org.koin.dsl.bind
 import org.koin.dsl.module
 
 private const val CONST_SERVER_URL = "CONST_SERVER_URL"
 
 class AppInjector {
     companion object {
-        @ExperimentalCoroutinesApi
         private val appModule = module {
-            // ViewModels
             viewModel { TasksViewModel(androidApplication(), get()) }
             viewModel { CreateTaskViewModel(androidApplication(), get()) }
             viewModel { AuthViewModel(androidApplication(), get()) }
 
-            // Repositories
             factory { TasksRepository(get(), get()) }
             factory { AuthRepository(get()) }
+            factory { GraphQLSourceImpl(get()) } bind NetworkTasksSource::class
+            factory { RoomSourceImpl(get()) } bind LocalTasksSource::class
 
-            // Sources
-            factory<GraphQLSource> { GraphQLSourceImpl(get()) }
-            factory<LocalSource> { LocalSourceImpl(get()) }
-
-            // Database
-            single<TaskDao> { get<TaskDatabase>().tasksDao() }
-            single<TaskDatabase> {
+            single { get<TaskDatabase>().tasksDao() }
+            single {
                 Room.databaseBuilder(androidContext(), TaskDatabase::class.java, DATABASE_NAME)
                     .build()
             }
 
             // Apollo Client
-            single <ApolloClient> {
+            single<ApolloClient> {
                 ApolloClient.builder()
                     .serverUrl(get<String>(named(CONST_SERVER_URL)))
-                    .okHttpClient(OkHttpClient.Builder()
-                        .addInterceptor(AuthInterceptor(androidContext()))
-                        .build())
+                    .okHttpClient(
+                        OkHttpClient.Builder()
+                            .addInterceptor(AuthInterceptor(androidContext()))
+                            .build()
+                    )
                     .build()
             }
 

@@ -18,7 +18,7 @@ class TasksViewModel(
 
     private val _error = MutableLiveData<APIError>()
     val error: LiveData<APIError> get() = _error
-    val tasks: LiveData<List<TaskEntity>> get() = _repository.getTasks(false)
+    val tasks: LiveData<List<TaskEntity>> get() = _repository.getTasks()
 
     fun pullToRefresh() = viewModelScope.launch(Dispatchers.IO) {
         _error.postValue(_repository.getTasksFromNetwork())

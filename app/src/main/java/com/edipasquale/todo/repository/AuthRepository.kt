@@ -3,31 +3,31 @@ package com.edipasquale.todo.repository
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.coroutines.await
+import com.apollographql.apollo.coroutines.toFlow
 import com.edipasquale.todo.BuildConfig
-import com.edipasquale.todo.dto.APIError
-import com.edipasquale.todo.dto.APIResult
-import com.edipasquale.todo.dto.Failure
-import com.edipasquale.todo.dto.Success
+import com.edipasquale.todo.dto.*
 import com.example.todolist.GenerateAccessTokenMutation
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
 class AuthRepository(
     private val _apolloClient: ApolloClient
 ) {
 
-    fun authenticate() = flow<APIResult<Response<GenerateAccessTokenMutation.Data>, APIError>>{
-        try {
-            val response = _apolloClient.mutate(
-                GenerateAccessTokenMutation(
-                    apiKey = BuildConfig.API_KEY,
-                    userName = BuildConfig.USER_NAME
-                )
-            ).await()
+    suspend fun authenticate(): APIResult<String, APIError> {
+        return try {
+            val mutation = GenerateAccessTokenMutation(BuildConfig.API_KEY, BuildConfig.USER_NAME)
+            val response = _apolloClient.mutate(mutation).toFlow().first()
 
-            emit(Success(response))
+            response.data?.generateAccessToken?.let { token ->
+                Success(token)
+            } ?: Failure(APIError(ERROR_INVALID_DATA))
+
 
         } catch (e: Exception) {
-            emit(Failure(APIError.fromException(e)))
+            Failure(APIError.fromException(e))
         }
     }
 }

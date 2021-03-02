@@ -8,10 +8,8 @@ import com.edipasquale.todo.db.entity.TaskEntity
 abstract class TaskDao {
 
     @Transaction
-    open fun insertTasks(tasks: List<TaskEntity>): List<TaskEntity> {
-        return tasks.map { task ->
-            task.copy(_id = insertTask(task))
-        }
+    open fun createTask(task: TaskEntity): TaskEntity {
+        return task.copy(_id = insertTask(task))
     }
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -23,8 +21,8 @@ abstract class TaskDao {
     @Query("SELECT * FROM tasks WHERE isDone = :done")
     abstract fun getTasks(done: Boolean): List<TaskEntity>
 
-    @Query("SELECT * FROM tasks WHERE isDone = :done")
-    abstract fun getTasksLiveData(done: Boolean): LiveData<List<TaskEntity>>
+    @Query("SELECT * FROM tasks")
+    abstract fun getTasksLiveData(): LiveData<List<TaskEntity>>
 
     @Query("SELECT * FROM tasks WHERE id is null")
     abstract fun getTasksToUpload(): List<TaskEntity>

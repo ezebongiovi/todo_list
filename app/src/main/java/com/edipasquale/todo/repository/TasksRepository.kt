@@ -1,33 +1,36 @@
 package com.edipasquale.todo.repository
 
+import android.content.Context
 import com.edipasquale.todo.db.entity.TaskEntity
 import com.edipasquale.todo.dto.APIError
 import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
-import com.edipasquale.todo.extensions.tasksAsEntities
-import com.edipasquale.todo.source.local.LocalSource
-import com.edipasquale.todo.source.network.GraphQLSource
-import com.example.todolist.GetAllTasksQuery
+import com.edipasquale.todo.source.NetworkTasksSource
+import com.edipasquale.todo.source.local.LocalTasksSource
 
 class TasksRepository(
-    private val _localSource: LocalSource,
-    private val _remoteSource: GraphQLSource
+    private val _localSource: LocalTasksSource,
+    private val _remoteSource: NetworkTasksSource
 ) {
 
-    fun createTasks(task: TaskEntity) {
-        _localSource.createTasks(listOf(task))
+    suspend fun createTasks(task: TaskEntity) {
+        _localSource.createTask(task)
     }
 
-    fun getTasks(done: Boolean) = _localSource.getTasksLiveData(done)
+    fun getTasks() = _localSource.getAllTasksStream()
 
     suspend fun getTasksFromNetwork(): APIError? {
-        return when (val response = _remoteSource.executeQuery(GetAllTasksQuery())) {
+        return when (val response = _remoteSource.getAllTasks()) {
             is Failure -> response.reason
-            is Success -> {
-                _localSource.createTasks(response.value.tasksAsEntities())
-
-                null
-            }
+            is Success -> updateLocalDatabase(response.value)
         }
+    }
+
+    private suspend fun updateLocalDatabase(newTasks: List<TaskEntity>): Nothing? {
+        newTasks.forEach { task ->
+            _localSource.createTask(task)
+        }
+
+        return null
     }
 }

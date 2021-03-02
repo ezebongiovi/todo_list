@@ -6,6 +6,7 @@ import com.apollographql.apollo.exception.ApolloNetworkException
 const val ERROR_UNKNOWN = "unknown_error"
 const val ERROR_GRAPHQL = "graphql_error"
 const val ERROR_NETWORK = "error_network"
+const val ERROR_INVALID_DATA = "invalid-data"
 
 class APIError(
     var error: String,

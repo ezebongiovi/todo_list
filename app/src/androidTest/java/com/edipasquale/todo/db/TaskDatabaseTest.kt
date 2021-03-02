@@ -32,89 +32,53 @@ class TaskDatabaseTest {
 
     @Test
     fun createTasks() {
-        // Insert a new task into the DB
-        val entity = listOf(TaskEntity(name = "Some Task"))
-
-        // When inserted the list gets updated with an internal ID.
-        val updatedList = _tasksDao.insertTasks(entity)
-
-        // Gets all the tasks from DB
+        val entity = TaskEntity(name = "Some Task")
+        val insertedTask = _tasksDao.createTask(entity)
         val allTasks = _tasksDao.getAllTasks()
 
-        // Assert the list only has 1 task
         Assert.assertEquals(1, allTasks.size)
-
-        // Assert the item exists on the DB is the same we inserted
-        Assert.assertEquals(updatedList.first(), allTasks.first())
+        Assert.assertEquals(insertedTask, allTasks.first())
     }
 
     @Test
     fun getTasks() {
-        // At this point the list of tasks must be empty
         val allTasks = _tasksDao.getAllTasks()
+
         Assert.assertTrue(allTasks.isEmpty())
 
-        // Insert a new task into the DB
-        val insertedTasks = _tasksDao.insertTasks(listOf(
-            TaskEntity(name = "Some task"),
-            TaskEntity(name = "Some other task")
-        ))
+        val insertedTask = _tasksDao.createTask(TaskEntity(name = "Some other task"))
+        val allTasksAfterInsertion = _tasksDao.getAllTasks()
 
-        // Gets all the tasks from DB
-        val allTasks2 = _tasksDao.getAllTasks()
-
-        // Assert the list only has 2 tasks
-        Assert.assertEquals(2, allTasks2.size)
-
-        // Assert the items exist on the DB are the same we just inserted
-        Assert.assertTrue(allTasks2.containsAll(insertedTasks))
+        Assert.assertEquals(1, allTasksAfterInsertion.size)
+        Assert.assertEquals(insertedTask, allTasksAfterInsertion[0])
     }
 
     @Test
     fun getPendingTasks() {
-        // At this point the list of tasks must be empty
         val allTasks = _tasksDao.getAllTasks()
         Assert.assertTrue(allTasks.isEmpty())
 
-        // Insert a new task into the DB
-        val insertedTasks = _tasksDao.insertTasks(listOf(
-            TaskEntity(name = "Some task", isDone = true),
-            TaskEntity(name = "Some other task")
-        ))
-
-        // Gets done tasks from DB
+        val insertedDoneTask = _tasksDao.createTask(TaskEntity(name = "Done", isDone = true))
+        val insertedUnDoneTask = _tasksDao.createTask(TaskEntity(name = "Undone", isDone = false))
         val doneTasks = _tasksDao.getTasks(true)
         val unDoneTasks = _tasksDao.getTasks(false)
 
-        // Assert the list of done tags has only 1 task
         Assert.assertEquals(1, doneTasks.size)
-        // Assert the done task retrieved from DB matches the one we just inserted
-        Assert.assertEquals(insertedTasks[0], doneTasks.first())
-
-        // Assert the list of undone tags has only 1 task
+        Assert.assertEquals(insertedDoneTask, doneTasks.first())
         Assert.assertEquals(1, unDoneTasks.size)
-        // Assert the undone task retrieved from DB matches the one we just inserted
-        Assert.assertEquals(insertedTasks[1], unDoneTasks.first())
+        Assert.assertEquals(insertedUnDoneTask, unDoneTasks.first())
     }
 
     @Test
     fun getNotSyncedTasks() {
-        // At this point the list of tasks must be empty
         val allTasks = _tasksDao.getAllTasks()
+
         Assert.assertTrue(allTasks.isEmpty())
 
-        // Insert a new task into the DB
-        val insertedTasks = _tasksDao.insertTasks(listOf(
-            TaskEntity(name = "Some task", isDone = true),
-            TaskEntity(id = "some_id", name = "Some other task")
-        ))
-
-        // Gets tasks that are not synced from DB
+        val insertedTask = _tasksDao.createTask(TaskEntity(name = "Some task", isDone = true))
         val notSyncedTasks = _tasksDao.getTasksToUpload()
 
-        // Assert the list of done tags has only 1 task
         Assert.assertEquals(1, notSyncedTasks.size)
-        // Assert the done task retrieved from DB matches the one we just inserted
-        Assert.assertEquals(insertedTasks[0], notSyncedTasks.first())
+        Assert.assertEquals(insertedTask, notSyncedTasks.first())
     }
 }

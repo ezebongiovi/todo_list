@@ -34,12 +34,10 @@ class CreateTaskFragment : Fragment() {
             _viewModel.createTask(
                 _binding.nameInputView.text.toString(),
                 _binding.noteInputView.text.toString()
-            )
+            ).invokeOnCompletion {
+                findNavController().navigate(R.id.action_SecondFragment_to_FirstFragment)
+            }
         }
-
-        _viewModel.taskCreation.observe(viewLifecycleOwner, {
-            findNavController().navigate(R.id.action_SecondFragment_to_FirstFragment)
-        })
     }
 
     override fun onDestroyView() {

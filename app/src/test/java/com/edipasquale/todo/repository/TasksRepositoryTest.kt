@@ -2,17 +2,17 @@ package com.edipasquale.todo.repository
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.MutableLiveData
-import com.apollographql.apollo.api.Operation
-import com.apollographql.apollo.api.Query
 import com.edipasquale.todo.db.entity.TaskEntity
 import com.edipasquale.todo.dto.APIError
 import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
 import com.edipasquale.todo.ext.getOrAwaitValue
-import com.edipasquale.todo.source.local.LocalSource
-import com.edipasquale.todo.source.network.GraphQLSource
-import com.example.todolist.GetAllTasksQuery
-import io.mockk.*
+import com.edipasquale.todo.source.NetworkTasksSource
+import com.edipasquale.todo.source.local.LocalTasksSource
+import io.mockk.coEvery
+import io.mockk.coVerify
+import io.mockk.every
+import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.*
 import org.junit.*
@@ -20,8 +20,8 @@ import org.junit.*
 class TasksRepositoryTest {
     private val _testCoroutineDispatcher = TestCoroutineDispatcher()
     private val _testCoroutineScope = TestCoroutineScope(_testCoroutineDispatcher)
-    private val _mockedLocalSource = mockk<LocalSource>()
-    private val _mockedRemoteSource = mockk<GraphQLSource>()
+    private val _mockedLocalSource = mockk<LocalTasksSource>()
+    private val _mockedRemoteSource = mockk<NetworkTasksSource>()
 
     @get:Rule
     val rule = InstantTaskExecutorRule()
@@ -44,11 +44,11 @@ class TasksRepositoryTest {
         )
 
         // Stub local response
-        every { _mockedLocalSource.createTasks(any()) } returns Unit
+        coEvery { _mockedLocalSource.createTask(any()) } returns mockk()
 
         repository.createTasks(TaskEntity(name = ""))
 
-        verify(exactly = 1) { _mockedLocalSource.createTasks(any()) }
+        coVerify(exactly = 1) { _mockedLocalSource.createTask(any()) }
     }
 
     @Test
@@ -59,13 +59,13 @@ class TasksRepositoryTest {
         )
 
         // Stub local response
-        every { _mockedLocalSource.getTasksLiveData(any()) } returns MutableLiveData<List<TaskEntity>>().apply {
+        every { _mockedLocalSource.getAllTasksStream() } returns MutableLiveData<List<TaskEntity>>().apply {
             value = emptyList()
         }
 
-        repository.getTasks(done = true).getOrAwaitValue()
+        repository.getTasks().getOrAwaitValue()
 
-        coVerify(exactly = 0) { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, Any, Operation.Variables>>()) }
+        coVerify(exactly = 0) { _mockedRemoteSource.createTask(any()) }
     }
 
     @Test
@@ -76,7 +76,7 @@ class TasksRepositoryTest {
         )
 
         // Stub local response
-        every { _mockedLocalSource.getTasksLiveData(any()) } returns MutableLiveData<List<TaskEntity>>().apply {
+        every { _mockedLocalSource.getAllTasksStream() } returns MutableLiveData<List<TaskEntity>>().apply {
             value = emptyList()
         }
 
@@ -84,18 +84,18 @@ class TasksRepositoryTest {
             When the refresh succeeds it will update the local database. So we need to stub
             the process of inserting tasks
          */
-        every { _mockedLocalSource.createTasks(any()) } returns Unit
+        coEvery { _mockedLocalSource.createTask(any()) } returns mockk()
 
         // Stubs a response from server with a list of items
-        coEvery { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, GetAllTasksQuery.Data, Operation.Variables>>()) } coAnswers {
-            networkSuccessAnswer()
+        coEvery { _mockedRemoteSource.getAllTasks() } coAnswers {
+            Success(listOf())
         }
 
         val result = repository.getTasksFromNetwork()
 
         Assert.assertNull(result)
 
-        coVerify(exactly = 1) { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, Any, Operation.Variables>>()) }
+        coVerify(exactly = 1) { _mockedRemoteSource.getAllTasks() }
     }
 
     @Test
@@ -106,7 +106,7 @@ class TasksRepositoryTest {
         )
 
         // Stub local response
-        every { _mockedLocalSource.getTasksLiveData(any()) } returns MutableLiveData<List<TaskEntity>>().apply {
+        every { _mockedLocalSource.getAllTasksStream() } returns MutableLiveData<List<TaskEntity>>().apply {
             value = emptyList()
         }
 
@@ -114,10 +114,10 @@ class TasksRepositoryTest {
             When the refresh succeeds it will update the local database. So we need to stub
             the process of inserting tasks
          */
-        every { _mockedLocalSource.createTasks(any()) } returns Unit
+        coEvery { _mockedLocalSource.createTask(any()) } returns mockk()
 
         // Stubs a response from server with a list of items
-        coEvery { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, GetAllTasksQuery.Data, Operation.Variables>>()) } coAnswers {
+        coEvery { _mockedRemoteSource.getAllTasks() } coAnswers {
             Failure(APIError("Error"))
         }
 
@@ -125,22 +125,6 @@ class TasksRepositoryTest {
 
         Assert.assertNotNull(result)
 
-        coVerify(exactly = 1) { _mockedRemoteSource.executeQuery(any<Query<Operation.Data, Any, Operation.Variables>>()) }
-    }
-
-    private fun networkSuccessAnswer(): Success<GetAllTasksQuery.Data> {
-        return Success(
-            GetAllTasksQuery.Data(
-                allTasks = listOf(
-                    GetAllTasksQuery.AllTask(
-                        __typename = "",
-                        name = "",
-                        id = "",
-                        isDone = false,
-                        note = ""
-                    )
-                )
-            )
-        )
+        coVerify(exactly = 1) { _mockedRemoteSource.getAllTasks() }
     }
 }

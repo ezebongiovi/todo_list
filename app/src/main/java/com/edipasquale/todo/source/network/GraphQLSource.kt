@@ -1,29 +1,87 @@
 package com.edipasquale.todo.source.network
 
+import com.apollographql.apollo.ApolloCall
+import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Mutation
 import com.apollographql.apollo.api.Operation
 import com.apollographql.apollo.api.Query
-import com.edipasquale.todo.dto.APIError
-import com.edipasquale.todo.dto.APIResult
-import kotlinx.coroutines.flow.Flow
+import com.apollographql.apollo.api.Response
+import com.apollographql.apollo.coroutines.toFlow
+import com.apollographql.apollo.exception.ApolloException
+import com.edipasquale.todo.dto.*
+import com.edipasquale.todo.source.NetworkTasksSource
+import kotlinx.coroutines.flow.first
+import kotlin.coroutines.Continuation
+import kotlin.coroutines.resume
+import kotlin.coroutines.suspendCoroutine
 
-interface GraphQLSource {
+abstract class GraphQLSource(private val _apolloClient: ApolloClient) : NetworkTasksSource {
 
     /**
-     * Executes a [Query] and maps the response into [APIResult]
+     * Executes a [Query] and maps the response into an [APIResult]
      *
-     * @param query
+     * @param query the query being executed
      */
-    suspend fun <Q : Query<out Operation.Data, T, out Operation.Variables>, T : Any> executeQuery(
+    protected suspend fun <Q : Query<out Operation.Data, T, out Operation.Variables>, T : Any> executeQuery(
         query: Q
-    ): APIResult<T, APIError>
+    ): APIResult<T, APIError> {
+        val response = _apolloClient.query(query).toFlow().first()
+
+        return handleResponse(response)
+    }
 
     /**
-     * Executes a [Mutation] and maps the response into [APIResult]
+     * Executes a [Mutation] and maps the response into an [APIResult]
      *
-     * @param mutation
+     * @param mutation the mutation being executed
      */
-    suspend fun <Q : Mutation<out Operation.Data, T, out Operation.Variables>, T : Any> executeMutation(
+    protected suspend fun <Q : Mutation<out Operation.Data, T, out Operation.Variables>, T : Any> executeMutation(
         mutation: Q
-    ): APIResult<T, APIError>
+    ): APIResult<T, APIError> {
+        val response = _apolloClient.mutate(mutation).toFlow().first()
+
+        return handleResponse(response)
+    }
+
+    /**
+     * Handles error responses and invalid data on response
+     *
+     * @param response the response being handled
+     */
+    private fun <T> handleResponse(response: Response<T>): APIResult<T, APIError> {
+        val topLevelError = getErrorsFromResponse(response)
+
+        return if (topLevelError == null)
+            getDataFromResponse(response)
+        else
+            return topLevelError
+    }
+
+    private fun <T> getErrorsFromResponse(response: Response<T>): Failure<APIError>? {
+        return response.errors?.let { errors ->
+            val topLevelError = errors.first()
+
+            Failure(APIError.fromApolloError(topLevelError))
+        }
+    }
+
+    private fun <T> getDataFromResponse(response: Response<T>): APIResult<T, APIError> {
+        val data = response.data
+
+        return if (data == null)
+            Failure(APIError(ERROR_INVALID_DATA))
+        else
+            Success(data)
+    }
+
+    private fun <T : Any> getCallback(continuation: Continuation<APIResult<T, APIError>>) =
+        object : ApolloCall.Callback<T>() {
+            override fun onResponse(response: Response<T>) {
+                continuation.resume(handleResponse(response))
+            }
+
+            override fun onFailure(e: ApolloException) {
+                continuation.resume(Failure(APIError.fromException(e)))
+            }
+        }
 }

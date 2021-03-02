@@ -6,10 +6,13 @@ import com.apollographql.apollo.ApolloMutationCall
 import com.apollographql.apollo.ApolloQueryCall
 import com.apollographql.apollo.api.*
 import com.apollographql.apollo.coroutines.toFlow
+import com.edipasquale.todo.db.entity.TaskEntity
 import com.edipasquale.todo.dto.ERROR_GRAPHQL
-import com.edipasquale.todo.dto.ERROR_UNKNOWN
+import com.edipasquale.todo.dto.ERROR_INVALID_DATA
 import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
+import com.example.todolist.CreateTaskMutation
+import com.example.todolist.GetAllTasksQuery
 import io.mockk.every
 import io.mockk.mockk
 import io.mockk.mockkStatic
@@ -40,13 +43,12 @@ class GraphQLSourceImplTest {
     @Test
     fun `QUERY response null data null errors case`() = runBlocking {
         val objectUnderTest = GraphQLSourceImpl(_mockedClient)
-        val mockedOperation = mockk<Query<Operation.Data, String, Operation.Variables>>()
 
-        mockQueryResponse(mockedOperation, Response.builder<String>(mockedOperation).build())
+        mockQueryResponse(Response.builder<String>(mockk()).build())
 
-        val response = objectUnderTest.executeQuery(mockedOperation)
+        val response = objectUnderTest.getAllTasks()
         assertTrue(response is Failure)
-        assertEquals(ERROR_UNKNOWN, (response as Failure).reason.error)
+        assertEquals(ERROR_INVALID_DATA, (response as Failure).reason.error)
     }
 
     @Test
@@ -57,7 +59,7 @@ class GraphQLSourceImplTest {
 
         mockQueryError(mockedOperation, expectedError)
 
-        val response = objectUnderTest.executeQuery(mockedOperation)
+        val response = objectUnderTest.getAllTasks()
         assertTrue(response is Failure)
         assertEquals(ERROR_GRAPHQL, (response as Failure).reason.error)
         assertEquals(expectedError.message, response.reason.errorDescription)
@@ -67,23 +69,25 @@ class GraphQLSourceImplTest {
     fun `MUTATION response null data null errors case`() = runBlocking {
         val objectUnderTest = GraphQLSourceImpl(_mockedClient)
         val mockedOperation = mockk<Mutation<Operation.Data, String, Operation.Variables>>()
+        val entity = TaskEntity(name = "Test")
 
-        mockMutationResponse(mockedOperation, Response.builder<String>(mockedOperation).build())
+        mockMutationResponse(Response.builder<String>(mockedOperation).build())
 
-        val response = objectUnderTest.executeMutation(mockedOperation)
+        val response = objectUnderTest.createTask(entity)
         assertTrue(response is Failure)
-        assertEquals(ERROR_UNKNOWN, (response as Failure).reason.error)
+        assertEquals(ERROR_INVALID_DATA, (response as Failure).reason.error)
     }
 
     @Test
     fun `MUTATION Response null data with top level error case`() = runBlocking {
         val objectUnderTest = GraphQLSourceImpl(_mockedClient)
-        val mockedOperation = mockk<Mutation<Operation.Data, String, Operation.Variables>>()
         val expectedError = Error("Some error")
+        val mockedOperation = mockk<Mutation<Operation.Data, String, Operation.Variables>>()
+        val entity = TaskEntity(name = "Test", note = "Test")
 
         mockMutationError(mockedOperation, expectedError)
 
-        val response = objectUnderTest.executeMutation(mockedOperation)
+        val response = objectUnderTest.createTask(entity)
         assertTrue(response is Failure)
         assertEquals(ERROR_GRAPHQL, (response as Failure).reason.error)
         assertEquals(expectedError.message, response.reason.errorDescription)
@@ -92,78 +96,74 @@ class GraphQLSourceImplTest {
     @Test
     fun `MUTATION Success case`() = runBlocking {
         val objectUnderTest = GraphQLSourceImpl(_mockedClient)
-        val mockedOperation = mockk<Mutation<Operation.Data, String, Operation.Variables>>()
-        val expectedResult = "Success response"
-
-        mockMutationResponse(
-            mockedOperation,
-            Response.builder<String>(mockedOperation).data(expectedResult).build()
+        val mockedOperation = mockk<Mutation<Operation.Data, Any, Operation.Variables>>()
+        val entity = TaskEntity(name = "Test")
+        val expectedResult = CreateTaskMutation.Data(
+            createTask = CreateTaskMutation.CreateTask(
+                id = "some",
+                name = entity.name,
+                note = entity.note,
+                isDone = entity.isDone
+            )
         )
 
-        val response = objectUnderTest.executeMutation(mockedOperation)
+        mockMutationResponse(Response.builder<Any>(mockedOperation).data(expectedResult).build())
+
+        val response = objectUnderTest.createTask(entity)
         assertTrue(response is Success)
-        assertEquals(expectedResult, (response as Success).value)
+        assertEquals(entity.copy(id = "some"), (response as Success).value)
     }
 
     @Test
     fun `QUERY Success case`() = runBlocking {
         val objectUnderTest = GraphQLSourceImpl(_mockedClient)
-        val mockedOperation = mockk<Query<Operation.Data, String, Operation.Variables>>()
-        val expectedResult = "Some response"
+        val mockedOperation = mockk<Query<Operation.Data, Any, Operation.Variables>>()
+        val expectedResult = GetAllTasksQuery.Data(
+            allTasks = emptyList()
+        )
 
         mockQueryResponse(
-            mockedOperation, Response.builder<String>(mockedOperation)
+            Response.builder<Any>(mockedOperation)
                 .data(expectedResult)
                 .build()
         )
 
-        val response = objectUnderTest.executeQuery(mockedOperation)
+        val response = objectUnderTest.getAllTasks()
         assertTrue(response is Success)
-        assertEquals(expectedResult, (response as Success).value)
+        assertEquals(emptyList<Any>(), (response as Success).value)
     }
 
     private fun <T> mockQueryResponse(
-        query: Query<Operation.Data, T, Operation.Variables>,
         response: Response<T>
     ) {
-        // Mock the ApolloQueryCall result when calling [ApolloClient.query]
         val mockedCallback = spyk<ApolloQueryCall<T>>()
 
-        every { _mockedClient.query(query) } returns mockedCallback
+        every { _mockedClient.query(any<Query<out Operation.Data, T, out Operation.Variables>>()) } returns mockedCallback
         every { mockedCallback.toFlow() } answers { flowOf(response) }
     }
 
-    private fun <T> mockMutationResponse(
-        mutation: Mutation<Operation.Data, T, Operation.Variables>,
-        response: Response<T>
-    ) {
+    private fun <T> mockMutationResponse(response: Response<T>) {
         val mockedCallback = spyk<ApolloMutationCall<T>>()
 
-        every { _mockedClient.mutate(mutation) } returns mockedCallback
+        every { _mockedClient.mutate(any<Mutation<out Operation.Data, T, out Operation.Variables>>()) } returns mockedCallback
         every { mockedCallback.toFlow() } answers { flowOf(response) }
     }
 
-    private fun mockMutationError(
-        mockedOperation: Mutation<Operation.Data, String, Operation.Variables>,
+    private fun <M : Mutation<out Operation.Data, T, out Operation.Variables>, T : Any> mockMutationError(
+        mockedOperation: M,
         expectedError: Error
     ) {
         val errors = listOf(expectedError)
 
-        mockMutationResponse(
-            mockedOperation,
-            Response.builder<String>(mockedOperation).errors(errors).build()
-        )
+        mockMutationResponse(Response.builder<T>(mockedOperation).errors(errors).build())
     }
 
-    private fun mockQueryError(
-        mockedOperation: Query<Operation.Data, String, Operation.Variables>,
+    private fun <Q : Query<out Operation.Data, T, out Operation.Variables>, T : Any> mockQueryError(
+        mockedOperation: Q,
         expectedError: Error
     ) {
         val errors = listOf(expectedError)
 
-        mockQueryResponse(
-            mockedOperation,
-            Response.builder<String>(mockedOperation).errors(errors).build()
-        )
+        mockQueryResponse(Response.builder<T>(mockedOperation).errors(errors).build())
     }
 }
