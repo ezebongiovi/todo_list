@@ -9,9 +9,9 @@ import io.mockk.every
 import io.mockk.mockk
 import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.*
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -86,5 +86,18 @@ class RoomSourceImplTest {
         _source.getUnSyncedTasks()
 
         verify(exactly = 1) { _mockedDao.getTasksToUpload() }
+    }
+
+    @Test
+    fun updateTask() = _testCoroutineScope.runBlockingTest {
+        // Preparation
+        var entity = TaskEntity(name = "Name")
+        every { _mockedDao.updateTask(any()) } returns entity
+
+        // Execution
+        _source.updateTask(entity)
+
+        // Verification
+        verify(exactly = 1) { _mockedDao.updateTask(entity) }
     }
 }

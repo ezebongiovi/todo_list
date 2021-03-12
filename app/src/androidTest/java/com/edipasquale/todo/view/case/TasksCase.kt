@@ -6,11 +6,9 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.test.core.app.ApplicationProvider
 import androidx.test.ext.junit.runners.AndroidJUnit4
-import com.apollographql.apollo.api.Mutation
-import com.apollographql.apollo.api.Operation
-import com.apollographql.apollo.api.Response
 import com.edipasquale.todo.KoinTestApp
 import com.edipasquale.todo.db.entity.TaskEntity
+import com.edipasquale.todo.dto.Credential
 import com.edipasquale.todo.dto.Success
 import com.edipasquale.todo.repository.AuthRepository
 import com.edipasquale.todo.repository.TasksRepository
@@ -18,7 +16,6 @@ import com.edipasquale.todo.view.page.TasksPage
 import com.edipasquale.todo.viewmodel.AuthViewModel
 import com.edipasquale.todo.viewmodel.CreateTaskViewModel
 import com.edipasquale.todo.viewmodel.TasksViewModel
-import com.example.todolist.GenerateAccessTokenMutation
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -59,13 +56,13 @@ class TasksCase {
             value = emptyList()
         } as LiveData<List<TaskEntity>>
 
-        coEvery { _mockAuthRepository.authenticate() } returns Success("Token")
+        coEvery { _mockAuthRepository.authenticate() } returns Success(Credential("Token"))
     }
 
     @Test
     fun navigateToCreateTask() {
         TasksPage()
-            .launch()
+            .launchWithActivity()
             .moveToState(Lifecycle.State.RESUMED)
             .navigateToCreateTask()
             .checkVisibility()

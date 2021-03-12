@@ -1,0 +1,55 @@
+jacoco {
+    toolVersion = "0.8.6"
+    reportsDir = file("build/jacocoTestReport")
+}
+
+tasks.withType(Test) {
+    jacoco.includeNoLocationClasses = true
+    jacoco.excludes = ['jdk.internal.*']
+}
+
+task jacocoTestReport(type: JacocoReport, dependsOn: ['app:testDebugUnitTest']) {
+
+    reports {
+        xml.enabled = true
+        html.enabled = true
+    }
+
+    def fileFilter = [
+            '**/R.class',
+            '**/R$*.class',
+            '**/BuildConfig.*',
+            '**/Manifest*.*',
+            '**/*Test*.*',
+            'android/**/*.*',
+            'fragment/**',
+            'Queries/**',
+            'type/**',
+            '**/dto/**',
+            '**/relish/RelishApplication*.*',
+            '**/todolist/**',
+            '**/*inlined*.*/**',
+            '**/*{*'
+    ]
+
+    sourceDirectories.from = files([
+            "app/src/main/kotlin"
+    ])
+
+    classDirectories.from = files([
+            fileTree(dir: "app/build/tmp/kotlin-classes/debug", excludes: fileFilter)
+    ])
+    executionData.from = [
+            fileTree(dir: 'app/', includes: [
+                    '**/*.ec', '**/*.exec'
+            ]),
+    ]
+
+    afterEvaluate {
+        classDirectories.setFrom(files(classDirectories.files.collect {
+            fileTree(dir: it, exclude: [
+                    '**/App*.class'
+            ])
+        }))
+    }
+}

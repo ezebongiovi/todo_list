@@ -1,4 +1,4 @@
-package com.edipasquale.todo.source.network.interceptor
+package com.edipasquale.todo.source.network.auth.interceptor
 
 import android.content.Context
 import com.edipasquale.todo.util.PrefUtils

@@ -2,17 +2,16 @@ package com.edipasquale.todo.repository
 
 import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import androidx.lifecycle.MutableLiveData
+import androidx.work.WorkManager
+import androidx.work.WorkRequest
 import com.edipasquale.todo.db.entity.TaskEntity
 import com.edipasquale.todo.dto.APIError
 import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
 import com.edipasquale.todo.ext.getOrAwaitValue
-import com.edipasquale.todo.source.NetworkTasksSource
 import com.edipasquale.todo.source.local.LocalTasksSource
-import io.mockk.coEvery
-import io.mockk.coVerify
-import io.mockk.every
-import io.mockk.mockk
+import com.edipasquale.todo.source.network.tasks.NetworkTasksSource
+import io.mockk.*
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.*
 import org.junit.*
@@ -22,6 +21,7 @@ class TasksRepositoryTest {
     private val _testCoroutineScope = TestCoroutineScope(_testCoroutineDispatcher)
     private val _mockedLocalSource = mockk<LocalTasksSource>()
     private val _mockedRemoteSource = mockk<NetworkTasksSource>()
+    private val _mockedWorkManager = mockk<WorkManager>()
 
     @get:Rule
     val rule = InstantTaskExecutorRule()
@@ -40,11 +40,15 @@ class TasksRepositoryTest {
     fun createTask() = _testCoroutineScope.runBlockingTest {
         val repository = TasksRepository(
             _mockedLocalSource,
-            _mockedRemoteSource
+            _mockedRemoteSource,
+            _mockedWorkManager
         )
 
         // Stub local response
         coEvery { _mockedLocalSource.createTask(any()) } returns mockk()
+        coEvery { _mockedWorkManager.enqueue(any<WorkRequest>()) } coAnswers {
+            mockk()
+        }
 
         repository.createTasks(TaskEntity(name = ""))
 
@@ -55,7 +59,8 @@ class TasksRepositoryTest {
     fun `Get empty list of tasks from local only`() = _testCoroutineScope.runBlockingTest {
         val repository = TasksRepository(
             _mockedLocalSource,
-            _mockedRemoteSource
+            _mockedRemoteSource,
+            _mockedWorkManager
         )
 
         // Stub local response
@@ -72,7 +77,8 @@ class TasksRepositoryTest {
     fun `Force refresh Success`() = _testCoroutineScope.runBlockingTest {
         val repository = TasksRepository(
             _mockedLocalSource,
-            _mockedRemoteSource
+            _mockedRemoteSource,
+            _mockedWorkManager
         )
 
         // Stub local response
@@ -102,7 +108,8 @@ class TasksRepositoryTest {
     fun `Force refresh Error`() = _testCoroutineScope.runBlockingTest {
         val repository = TasksRepository(
             _mockedLocalSource,
-            _mockedRemoteSource
+            _mockedRemoteSource,
+            _mockedWorkManager
         )
 
         // Stub local response

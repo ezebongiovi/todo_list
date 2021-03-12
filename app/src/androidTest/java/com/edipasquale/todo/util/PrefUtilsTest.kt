@@ -12,11 +12,14 @@ class PrefUtilsTest {
 
     @Test
     fun saveToken() {
+        // Preparation
         val context = ApplicationProvider.getApplicationContext<Context>()
         val insertedToken = "Token-XXX"
 
+        // Execution
         PrefUtils.saveAccessToken(context, insertedToken)
 
+        // Verification
         assertEquals(insertedToken, PrefUtils.getAccessToken(context))
     }
 

@@ -1,4 +1,4 @@
-package com.edipasquale.todo.source.network
+package com.edipasquale.todo.source.network.tasks.impl
 
 import com.apollographql.apollo.ApolloCall
 import com.apollographql.apollo.ApolloClient
@@ -9,11 +9,10 @@ import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.coroutines.toFlow
 import com.apollographql.apollo.exception.ApolloException
 import com.edipasquale.todo.dto.*
-import com.edipasquale.todo.source.NetworkTasksSource
+import com.edipasquale.todo.source.network.tasks.NetworkTasksSource
 import kotlinx.coroutines.flow.first
 import kotlin.coroutines.Continuation
 import kotlin.coroutines.resume
-import kotlin.coroutines.suspendCoroutine
 
 abstract class GraphQLSource(private val _apolloClient: ApolloClient) : NetworkTasksSource {
 

@@ -1,4 +1,4 @@
-package com.edipasquale.todo.source
+package com.edipasquale.todo.source.network.tasks
 
 import com.edipasquale.todo.db.entity.TaskEntity
 import com.edipasquale.todo.dto.APIError

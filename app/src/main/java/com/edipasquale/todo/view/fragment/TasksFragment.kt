@@ -8,6 +8,8 @@ import androidx.navigation.fragment.findNavController
 import androidx.recyclerview.widget.LinearLayoutManager
 import com.edipasquale.todo.R
 import com.edipasquale.todo.databinding.FragmentTasksBinding
+import com.edipasquale.todo.db.entity.TaskEntity
+import com.edipasquale.todo.dto.APIError
 import com.edipasquale.todo.view.adapter.TasksAdapter
 import com.edipasquale.todo.view.fragment.base.AuthFragment
 import com.edipasquale.todo.viewmodel.TasksViewModel
@@ -18,20 +20,13 @@ class TasksFragment : AuthFragment() {
 
     private val _viewModel: TasksViewModel by viewModel()
     private lateinit var _binding: FragmentTasksBinding
+    private val _adapter = TasksAdapter()
 
     override fun onCreateView(
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View {
-        _binding = FragmentTasksBinding.inflate(inflater, container, false)
-
-        _binding.fab.setOnClickListener {
-            findNavController().navigate(R.id.action_FirstFragment_to_SecondFragment)
-        }
-
-        _binding.refreshLayout.setOnRefreshListener {
-            _viewModel.pullToRefresh()
-        }
+        _binding = createBinding(inflater, container)
 
         return _binding.root
     }
@@ -44,27 +39,47 @@ class TasksFragment : AuthFragment() {
         render()
     }
 
+    private fun createBinding(
+        inflater: LayoutInflater,
+        container: ViewGroup?
+    ) = FragmentTasksBinding.inflate(inflater, container, false).apply {
+        recyclerView.layoutManager = LinearLayoutManager(requireContext())
+        recyclerView.adapter = _adapter
+
+        refreshLayout.setOnRefreshListener { _viewModel.pullToRefresh() }
+
+        fab.setOnClickListener {
+            val destination = TasksFragmentDirections.createTaskFragment()
+
+            findNavController().navigate(destination)
+        }
+    }
+
     private fun render() {
-        val adapter = TasksAdapter()
-        _binding.recyclerView.layoutManager = LinearLayoutManager(requireContext())
-        _binding.recyclerView.adapter = adapter
-
         _viewModel.tasks.observe(viewLifecycleOwner, { tasks ->
-            _binding.progress.visibility = View.GONE
+            _binding.refreshLayout.isRefreshing = false
 
-            adapter.submitList(tasks)
+            renderTasks(tasks)
         })
 
         _viewModel.error.observe(viewLifecycleOwner, { error ->
             _binding.refreshLayout.isRefreshing = false
 
-            if (error == null)
-                return@observe
-
-            showErrorMmessage(
-                error.errorDescription ?: getString(R.string.error_unknown_fetch_tasks)
-            )
+            renderError(error)
         })
+    }
+
+    private fun renderError(error: APIError?) {
+        if (error == null)
+            return
+
+        showErrorMmessage(error.errorDescription ?: getString(R.string.error_unknown_fetch_tasks))
+    }
+
+    private fun renderTasks(tasks: List<TaskEntity>) {
+        _binding.progress.visibility = View.GONE
+
+        _adapter.submitList(tasks)
     }
 
     private fun showErrorMmessage(message: String) {

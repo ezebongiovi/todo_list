@@ -15,7 +15,7 @@ abstract class TaskDao {
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     protected abstract fun insertTask(task: TaskEntity): Long
 
-    @Query("SELECT * FROM tasks")
+    @Query("SELECT * FROM tasks ORDER BY _id DESC")
     abstract fun getAllTasks(): List<TaskEntity>
 
     @Query("SELECT * FROM tasks WHERE isDone = :done")
@@ -26,4 +26,14 @@ abstract class TaskDao {
 
     @Query("SELECT * FROM tasks WHERE id is null")
     abstract fun getTasksToUpload(): List<TaskEntity>
+
+    @Update
+    protected abstract fun updateTaskEntity(task: TaskEntity): Int
+
+    @Transaction
+    open fun updateTask(updatedTask: TaskEntity): TaskEntity {
+        updateTaskEntity(updatedTask)
+
+        return updatedTask
+    }
 }

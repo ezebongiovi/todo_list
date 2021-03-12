@@ -1,4 +1,4 @@
-package com.edipasquale.todo.source.network
+package com.edipasquale.todo.source.network.tasks.impl
 
 import com.apollographql.apollo.ApolloClient
 import com.edipasquale.todo.db.entity.TaskEntity

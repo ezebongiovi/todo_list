@@ -3,6 +3,8 @@ plugins {
     id 'kotlin-android'
     id "kotlin-kapt"
     id("com.apollographql.apollo").version("${apollo_version}")
+    id "androidx.navigation.safeargs.kotlin"
+    id "jacoco"
 }
 
 def secretsFile = rootProject.file("secrets.properties");
@@ -83,7 +85,6 @@ android {
 }
 
 dependencies {
-
     // Apollo
     implementation("com.apollographql.apollo:apollo-runtime:$apollo_version")
     implementation ("com.apollographql.apollo:apollo-coroutines-support:$apollo_version")
@@ -103,6 +104,9 @@ dependencies {
 
     // Swipe to refresh layout
     implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0"
+
+    // AndroidX Fragment
+    debugImplementation "androidx.fragment:fragment-testing:$fragment_version"
 
     // Work Manager
     implementation "androidx.work:work-runtime-ktx:$work_version"

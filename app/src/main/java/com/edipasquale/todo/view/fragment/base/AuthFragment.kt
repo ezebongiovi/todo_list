@@ -12,18 +12,14 @@ import org.koin.androidx.viewmodel.ext.android.viewModel
 abstract class AuthFragment : Fragment() {
     private val _viewModel: AuthViewModel by viewModel()
 
-    override fun onCreateView(
-        inflater: LayoutInflater,
-        container: ViewGroup?,
-        savedInstanceState: Bundle?
-    ): View? {
-        return super.onCreateView(inflater, container, savedInstanceState)
+    override fun onCreate(savedInstanceState: Bundle?) {
+        super.onCreate(savedInstanceState)
+
+        _viewModel.authenticate()
     }
 
     override fun onViewCreated(view: View, savedInstanceState: Bundle?) {
         super.onViewCreated(view, savedInstanceState)
-
-        _viewModel.authenticate()
 
         _viewModel.authModel.observe(viewLifecycleOwner, { token ->
             PrefUtils.saveAccessToken(requireContext(), token)

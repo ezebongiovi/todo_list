@@ -7,7 +7,7 @@ import com.edipasquale.todo.db.entity.TaskEntity
 import com.edipasquale.todo.dto.APIError
 import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
-import com.edipasquale.todo.source.NetworkTasksSource
+import com.edipasquale.todo.source.network.tasks.NetworkTasksSource
 import com.edipasquale.todo.source.local.LocalTasksSource
 import org.koin.java.KoinJavaComponent
 
@@ -42,7 +42,7 @@ class LocalSyncWorker(appContext: Context, workerParams: WorkerParameters) :
             isDone = remoteTask.isDone
         )
 
-        _localSource.createTask(entity)
+        _localSource.updateTask(entity)
 
         return Result.success()
     }
@@ -54,15 +54,13 @@ class LocalSyncWorker(appContext: Context, workerParams: WorkerParameters) :
     }
 
     companion object {
-        fun scheduleRemoteSync(context: Context) {
-            WorkManager.getInstance(context).enqueue(
-                OneTimeWorkRequestBuilder<LocalSyncWorker>()
-                    .setConstraints(
-                        Constraints.Builder()
-                            .setRequiredNetworkType(NetworkType.CONNECTED)
-                            .build()
-                    ).build()
-            )
-        }
+        fun oneTimeWorkRequest() = OneTimeWorkRequestBuilder<LocalSyncWorker>()
+                .setConstraints(
+                    Constraints
+                        .Builder()
+                        .setRequiredNetworkType(NetworkType.CONNECTED)
+                        .build()
+                )
+                .build()
     }
 }

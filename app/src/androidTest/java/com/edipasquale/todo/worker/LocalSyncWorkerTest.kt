@@ -10,8 +10,8 @@ import com.edipasquale.todo.dto.APIError
 import com.edipasquale.todo.dto.ERROR_GRAPHQL
 import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
-import com.edipasquale.todo.source.NetworkTasksSource
 import com.edipasquale.todo.source.local.LocalTasksSource
+import com.edipasquale.todo.source.network.tasks.NetworkTasksSource
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -40,53 +40,52 @@ class LocalSyncWorkerTest {
 
     @Test
     fun noTasksToUpload() {
+        // Preparation
         val worker = TestListenableWorkerBuilder<LocalSyncWorker>(_koinApp).build()
-
         coEvery { _mockLocalSource.getUnSyncedTasks() } returns emptyList()
 
+        // Execution
         val result = worker.startWork().get()
 
+        // Verification
         Assert.assertTrue(result is ListenableWorker.Result.Success)
-
         coVerify(exactly = 0) { _mockRemoteSource.createTask(any()) }
     }
 
     @Test
     fun tasksToUploadSuccess() {
+        // Preparation
         val worker = TestListenableWorkerBuilder<LocalSyncWorker>(_koinApp).build()
-        val entity = TaskEntity(
-            name = "Some name",
-            note = "Some note"
-        )
-
+        val entity = TaskEntity(name = "Some name", note = "Some note")
         coEvery { _mockLocalSource.getUnSyncedTasks() } returns listOf(entity)
         coEvery { _mockLocalSource.createTask(any()) } returns entity
+        coEvery { _mockLocalSource.updateTask(any()) } returns entity
         coEvery { _mockRemoteSource.createTask(any()) } coAnswers {
             Success(TaskEntity(id = "", name = "", note = "", isDone = false))
         }
 
+        // Execution
         val result = worker.startWork().get()
 
+        // Verification
         Assert.assertTrue(result is ListenableWorker.Result.Success)
         coVerify(exactly = 1) { _mockRemoteSource.createTask(any()) }
     }
 
     @Test
     fun tasksToUploadError() {
+        // Preparation
         val worker = TestListenableWorkerBuilder<LocalSyncWorker>(_koinApp).build()
         val entity = TaskEntity(name = "Some name", note = "Some note")
-
+        val expectedError = APIError(error = ERROR_GRAPHQL, errorDescription = "Some description")
         coEvery { _mockLocalSource.getUnSyncedTasks() } returns listOf(entity)
         coEvery { _mockLocalSource.createTask(any()) } returns entity
+        coEvery { _mockRemoteSource.createTask(entity) } coAnswers { Failure(expectedError) }
 
-        val expectedError = APIError(error = ERROR_GRAPHQL, errorDescription = "Some description")
-
-        coEvery { _mockRemoteSource.createTask(entity) } coAnswers {
-            Failure(expectedError)
-        }
-
+        // Execution
         val result = worker.startWork().get()
 
+        // Verification
         Assert.assertTrue(result is ListenableWorker.Result.Retry)
         coVerify(exactly = 1) { _mockRemoteSource.createTask(any()) }
     }

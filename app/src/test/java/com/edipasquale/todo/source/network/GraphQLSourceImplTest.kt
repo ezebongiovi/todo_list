@@ -11,6 +11,7 @@ import com.edipasquale.todo.dto.ERROR_GRAPHQL
 import com.edipasquale.todo.dto.ERROR_INVALID_DATA
 import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
+import com.edipasquale.todo.source.network.tasks.impl.GraphQLSourceImpl
 import com.example.todolist.CreateTaskMutation
 import com.example.todolist.GetAllTasksQuery
 import io.mockk.every

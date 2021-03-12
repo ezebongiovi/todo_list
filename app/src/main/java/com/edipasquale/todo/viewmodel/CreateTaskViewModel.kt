@@ -23,6 +23,5 @@ class CreateTaskViewModel(
         )
 
         _repository.createTasks(entity)
-        LocalSyncWorker.scheduleRemoteSync(getApplication())
     }
 }
