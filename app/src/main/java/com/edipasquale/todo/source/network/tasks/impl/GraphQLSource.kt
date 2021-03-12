@@ -1,18 +1,14 @@
 package com.edipasquale.todo.source.network.tasks.impl
 
-import com.apollographql.apollo.ApolloCall
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.api.Mutation
 import com.apollographql.apollo.api.Operation
 import com.apollographql.apollo.api.Query
 import com.apollographql.apollo.api.Response
 import com.apollographql.apollo.coroutines.toFlow
-import com.apollographql.apollo.exception.ApolloException
 import com.edipasquale.todo.dto.*
 import com.edipasquale.todo.source.network.tasks.NetworkTasksSource
 import kotlinx.coroutines.flow.first
-import kotlin.coroutines.Continuation
-import kotlin.coroutines.resume
 
 abstract class GraphQLSource(private val _apolloClient: ApolloClient) : NetworkTasksSource {
 
@@ -72,15 +68,4 @@ abstract class GraphQLSource(private val _apolloClient: ApolloClient) : NetworkT
         else
             Success(data)
     }
-
-    private fun <T : Any> getCallback(continuation: Continuation<APIResult<T, APIError>>) =
-        object : ApolloCall.Callback<T>() {
-            override fun onResponse(response: Response<T>) {
-                continuation.resume(handleResponse(response))
-            }
-
-            override fun onFailure(e: ApolloException) {
-                continuation.resume(Failure(APIError.fromException(e)))
-            }
-        }
 }
