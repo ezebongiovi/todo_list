@@ -3,7 +3,13 @@ plugins {
     id 'kotlin-android'
     id "kotlin-kapt"
     id("com.apollographql.apollo").version("${apollo_version}")
+    id "androidx.navigation.safeargs.kotlin"
+    id "jacoco"
 }
+
+def secretsFile = rootProject.file("secrets.properties");
+def secretProperties = new Properties()
+secretProperties.load(new FileInputStream(secretsFile))
 
 android {
     compileSdkVersion 30
@@ -11,10 +17,10 @@ android {
 
     signingConfigs {
         release {
-            storeFile file("release_keystore.jks")
-            storePassword '123456'
-            keyAlias 'keystore'
-            keyPassword '123456'
+            storeFile file(secretProperties["storeFile"])
+            storePassword secretProperties["storePassword"]
+            keyAlias secretProperties["keyAlias"]
+            keyPassword secretProperties["keyPassword"]
         }
     }
 
@@ -36,8 +42,8 @@ android {
             signingConfig signingConfigs.release
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
             buildConfigField "String", 'SERVER_URL', "\"https://380odjc5vi.execute-api.us-east-1.amazonaws.com/dev/graphql\""
-            buildConfigField "String", 'API_KEY', "\"67faa483-4afe-4397-b3ec-a183f294a382\""
-            buildConfigField "String", 'USER_NAME', "\"Ezequiel\""
+            buildConfigField "String", 'API_KEY', secretProperties["apikey"]
+            buildConfigField "String", 'USER_NAME', secretProperties["userName"]
         }
 
         debug {
@@ -45,8 +51,8 @@ android {
             debuggable true
             testCoverageEnabled true
             buildConfigField "String", 'SERVER_URL', "\"https://380odjc5vi.execute-api.us-east-1.amazonaws.com/dev/graphql\""
-            buildConfigField "String", 'API_KEY', "\"67faa483-4afe-4397-b3ec-a183f294a382\""
-            buildConfigField "String", 'USER_NAME', "\"Ezequiel\""
+            buildConfigField "String", 'API_KEY', secretProperties["apikey"]
+            buildConfigField "String", 'USER_NAME', secretProperties["userName"]
         }
     }
 
@@ -79,7 +85,6 @@ android {
 }
 
 dependencies {
-
     // Apollo
     implementation("com.apollographql.apollo:apollo-runtime:$apollo_version")
     implementation ("com.apollographql.apollo:apollo-coroutines-support:$apollo_version")
@@ -99,6 +104,9 @@ dependencies {
 
     // Swipe to refresh layout
     implementation "androidx.swiperefreshlayout:swiperefreshlayout:1.1.0"
+
+    // AndroidX Fragment
+    debugImplementation "androidx.fragment:fragment-testing:$fragment_version"
 
     // Work Manager
     implementation "androidx.work:work-runtime-ktx:$work_version"

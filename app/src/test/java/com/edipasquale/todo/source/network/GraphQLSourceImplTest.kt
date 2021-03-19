@@ -1,21 +1,29 @@
 package com.edipasquale.todo.source.network
 
+import androidx.arch.core.executor.testing.InstantTaskExecutorRule
 import com.apollographql.apollo.ApolloClient
 import com.apollographql.apollo.ApolloMutationCall
 import com.apollographql.apollo.ApolloQueryCall
 import com.apollographql.apollo.api.*
-import com.apollographql.apollo.coroutines.await
 import com.apollographql.apollo.coroutines.toFlow
+import com.edipasquale.todo.db.entity.TaskEntity
 import com.edipasquale.todo.dto.ERROR_GRAPHQL
-import com.edipasquale.todo.dto.ERROR_UNKNOWN
+import com.edipasquale.todo.dto.ERROR_INVALID_DATA
 import com.edipasquale.todo.dto.Failure
 import com.edipasquale.todo.dto.Success
-import io.mockk.*
-import kotlinx.coroutines.flow.collect
+import com.edipasquale.todo.source.network.tasks.impl.GraphQLSourceImpl
+import com.example.todolist.CreateTaskMutation
+import com.example.todolist.GetAllTasksQuery
+import io.mockk.every
+import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.spyk
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
-import org.junit.Assert.*
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
+import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
@@ -25,6 +33,9 @@ class GraphQLSourceImplTest {
 
     private val _mockedClient = mockk<ApolloClient>()
 
+    @get:Rule
+    val rule = InstantTaskExecutorRule()
+
     @Before
     fun setUp() {
         mockkStatic("com.apollographql.apollo.coroutines.CoroutinesExtensionsKt")
@@ -32,154 +43,128 @@ class GraphQLSourceImplTest {
 
     @Test
     fun `QUERY response null data null errors case`() = runBlocking {
-        // Object under test
-        val source = GraphQLSourceImpl(_mockedClient)
+        val objectUnderTest = GraphQLSourceImpl(_mockedClient)
 
-        // Mock the operation we execute during tests
-        val mockedOperation = mockk<Query<Operation.Data, String, Operation.Variables>>()
+        mockQueryResponse(Response.builder<String>(mockk()).build())
 
-        mockQueryResponse(mockedOperation, Response.builder<String>(mockedOperation).build())
-
-        // Make the call
-        source.executeQuery(mockedOperation).collect { response ->
-            // Assert its an error
-            assertTrue(response is Failure)
-            assertEquals(ERROR_UNKNOWN, (response as Failure).reason.error)
-        }
+        val response = objectUnderTest.getAllTasks()
+        assertTrue(response is Failure)
+        assertEquals(ERROR_INVALID_DATA, (response as Failure).reason.error)
     }
 
     @Test
     fun `QUERY Response null data with top level error case`() = runBlocking {
-        // Object under test
-        val source = GraphQLSourceImpl(_mockedClient)
-
-        // Mock the operation we execute during tests
+        val objectUnderTest = GraphQLSourceImpl(_mockedClient)
         val mockedOperation = mockk<Query<Operation.Data, String, Operation.Variables>>()
         val expectedError = Error("Some error")
 
-        mockQueryResponse(mockedOperation, Response.builder<String>(mockedOperation)
-            .errors(listOf(
-                expectedError
-            ))
-            .build())
+        mockQueryError(mockedOperation, expectedError)
 
-        // Make the call
-        source.executeQuery(mockedOperation).collect { response ->
-            // Assert its an error
-            assertTrue(response is Failure)
-
-            assertEquals(ERROR_GRAPHQL, (response as Failure).reason.error)
-            assertEquals(expectedError.message, response.reason.errorDescription)
-        }
+        val response = objectUnderTest.getAllTasks()
+        assertTrue(response is Failure)
+        assertEquals(ERROR_GRAPHQL, (response as Failure).reason.error)
+        assertEquals(expectedError.message, response.reason.errorDescription)
     }
 
     @Test
     fun `MUTATION response null data null errors case`() = runBlocking {
-        // Object under test
-        val source = GraphQLSourceImpl(_mockedClient)
-
-        // Mock the operation we execute during tests
+        val objectUnderTest = GraphQLSourceImpl(_mockedClient)
         val mockedOperation = mockk<Mutation<Operation.Data, String, Operation.Variables>>()
+        val entity = TaskEntity(name = "Test")
 
-        mockMutationResponse(mockedOperation, Response.builder<String>(mockedOperation).build())
+        mockMutationResponse(Response.builder<String>(mockedOperation).build())
 
-        // Make the call
-        source.executeMutation(mockedOperation).collect { response ->
-            // Assert its an error
-            assertTrue(response is Failure)
-
-            assertEquals(ERROR_UNKNOWN, (response as Failure).reason.error)
-        }
+        val response = objectUnderTest.createTask(entity)
+        assertTrue(response is Failure)
+        assertEquals(ERROR_INVALID_DATA, (response as Failure).reason.error)
     }
 
     @Test
     fun `MUTATION Response null data with top level error case`() = runBlocking {
-        // Object under test
-        val source = GraphQLSourceImpl(_mockedClient)
-
-        // Mock the operation we execute during tests
-        val mockedOperation = mockk<Mutation<Operation.Data, String, Operation.Variables>>()
+        val objectUnderTest = GraphQLSourceImpl(_mockedClient)
         val expectedError = Error("Some error")
+        val mockedOperation = mockk<Mutation<Operation.Data, String, Operation.Variables>>()
+        val entity = TaskEntity(name = "Test", note = "Test")
 
-        mockMutationResponse(mockedOperation, Response.builder<String>(mockedOperation)
-            .errors(listOf(
-                expectedError
-            ))
-            .build())
+        mockMutationError(mockedOperation, expectedError)
 
-        // Make the call
-        source.executeMutation(mockedOperation).collect { response ->
-            // Assert its an error
-            assertTrue(response is Failure)
-
-            assertEquals(ERROR_GRAPHQL, (response as Failure).reason.error)
-            assertEquals(expectedError.message, response.reason.errorDescription)
-        }
+        val response = objectUnderTest.createTask(entity)
+        assertTrue(response is Failure)
+        assertEquals(ERROR_GRAPHQL, (response as Failure).reason.error)
+        assertEquals(expectedError.message, response.reason.errorDescription)
     }
 
     @Test
     fun `MUTATION Success case`() = runBlocking {
-        // Object under test
-        val source = GraphQLSourceImpl(_mockedClient)
+        val objectUnderTest = GraphQLSourceImpl(_mockedClient)
+        val mockedOperation = mockk<Mutation<Operation.Data, Any, Operation.Variables>>()
+        val entity = TaskEntity(name = "Test")
+        val expectedResult = CreateTaskMutation.Data(
+            createTask = CreateTaskMutation.CreateTask(
+                id = "some",
+                name = entity.name,
+                note = entity.note,
+                isDone = entity.isDone
+            )
+        )
 
-        // Mock the operation we execute during tests
-        val mockedOperation = mockk<Mutation<Operation.Data, String, Operation.Variables>>()
-        val expectedResult = "Some response"
+        mockMutationResponse(Response.builder<Any>(mockedOperation).data(expectedResult).build())
 
-        mockMutationResponse(mockedOperation, Response.builder<String>(mockedOperation)
-            .data(expectedResult)
-            .build())
-
-        // Make the call
-        source.executeMutation(mockedOperation).collect { response ->
-            // Assert its an error
-            assertTrue(response is Success)
-
-            assertEquals(expectedResult, (response as Success).value)
-        }
+        val response = objectUnderTest.createTask(entity)
+        assertTrue(response is Success)
+        assertEquals(entity.copy(id = "some"), (response as Success).value)
     }
 
     @Test
     fun `QUERY Success case`() = runBlocking {
-        // Object under test
-        val source = GraphQLSourceImpl(_mockedClient)
+        val objectUnderTest = GraphQLSourceImpl(_mockedClient)
+        val mockedOperation = mockk<Query<Operation.Data, Any, Operation.Variables>>()
+        val expectedResult = GetAllTasksQuery.Data(
+            allTasks = emptyList()
+        )
 
-        // Mock the operation we execute during tests
-        val mockedOperation = mockk<Query<Operation.Data, String, Operation.Variables>>()
-        val expectedResult = "Some response"
+        mockQueryResponse(
+            Response.builder<Any>(mockedOperation)
+                .data(expectedResult)
+                .build()
+        )
 
-        mockQueryResponse(mockedOperation, Response.builder<String>(mockedOperation)
-            .data(expectedResult)
-            .build())
-
-        // Make the call
-        source.executeQuery(mockedOperation).collect { response ->
-            // Assert its an error
-            assertTrue(response is Success)
-
-            assertEquals(expectedResult, (response as Success).value)
-        }
+        val response = objectUnderTest.getAllTasks()
+        assertTrue(response is Success)
+        assertEquals(emptyList<Any>(), (response as Success).value)
     }
 
-    private fun <T> mockQueryResponse(query: Query<Operation.Data, T, Operation.Variables>, response: Response<T>) {
-        // Mock the ApolloQueryCall result when calling [ApolloClient.query]
+    private fun <T> mockQueryResponse(
+        response: Response<T>
+    ) {
         val mockedCallback = spyk<ApolloQueryCall<T>>()
 
-        // Stub responses from mock source
-        every { _mockedClient.query(query) } returns mockedCallback
-
-        // Stub callback result to a response without errors or data
-        coEvery { mockedCallback.await() } coAnswers { response }
+        every { _mockedClient.query(any<Query<out Operation.Data, T, out Operation.Variables>>()) } returns mockedCallback
+        every { mockedCallback.toFlow() } answers { flowOf(response) }
     }
 
-    private fun <T> mockMutationResponse(mutation: Mutation<Operation.Data, T, Operation.Variables>, response: Response<T>) {
-        // Mock the ApolloQueryCall result when calling [ApolloClient.query]
+    private fun <T> mockMutationResponse(response: Response<T>) {
         val mockedCallback = spyk<ApolloMutationCall<T>>()
 
-        // Stub responses from mock source
-        every { _mockedClient.mutate(mutation) } returns mockedCallback
+        every { _mockedClient.mutate(any<Mutation<out Operation.Data, T, out Operation.Variables>>()) } returns mockedCallback
+        every { mockedCallback.toFlow() } answers { flowOf(response) }
+    }
 
-        // Stub callback result to a response without errors or data
-        coEvery { mockedCallback.await() } coAnswers { response }
+    private fun <M : Mutation<out Operation.Data, T, out Operation.Variables>, T : Any> mockMutationError(
+        mockedOperation: M,
+        expectedError: Error
+    ) {
+        val errors = listOf(expectedError)
+
+        mockMutationResponse(Response.builder<T>(mockedOperation).errors(errors).build())
+    }
+
+    private fun <Q : Query<out Operation.Data, T, out Operation.Variables>, T : Any> mockQueryError(
+        mockedOperation: Q,
+        expectedError: Error
+    ) {
+        val errors = listOf(expectedError)
+
+        mockQueryResponse(Response.builder<T>(mockedOperation).errors(errors).build())
     }
 }

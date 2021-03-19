@@ -7,7 +7,7 @@ import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.viewModelScope
 import com.edipasquale.todo.db.entity.TaskEntity
 import com.edipasquale.todo.repository.TasksRepository
-import com.edipasquale.todo.worker.CreateTaskWorker
+import com.edipasquale.todo.worker.LocalSyncWorker
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 
@@ -16,19 +16,12 @@ class CreateTaskViewModel(
     private val _repository: TasksRepository
 ) : AndroidViewModel(app) {
 
-    private val _taskCreation = MutableLiveData<TaskEntity>()
-    val taskCreation : LiveData<TaskEntity> = _taskCreation
-
     fun createTask(name: String, note: String) = viewModelScope.launch(Dispatchers.IO) {
         val entity = TaskEntity(
             name = name,
             note = note
         )
 
-        _repository.createTask(entity)
-
-        _taskCreation.postValue(entity)
-
-        CreateTaskWorker.schedule(getApplication())
+        _repository.createTasks(entity)
     }
 }

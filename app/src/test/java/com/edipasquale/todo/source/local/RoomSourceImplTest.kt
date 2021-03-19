@@ -11,6 +11,7 @@ import io.mockk.verify
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.test.*
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
@@ -18,11 +19,11 @@ import org.junit.runner.RunWith
 import org.junit.runners.JUnit4
 
 @RunWith(JUnit4::class)
-class LocalSourceImplTest {
+class RoomSourceImplTest {
     private val _testCoroutineDispatcher = TestCoroutineDispatcher()
     private val _testCoroutineScope = TestCoroutineScope(_testCoroutineDispatcher)
     private val _mockedDao: TaskDao = mockk()
-    private val _source = LocalSourceImpl(_mockedDao)
+    private val _source = RoomSourceImpl(_mockedDao)
 
     @get:Rule
     val rule = InstantTaskExecutorRule()
@@ -31,11 +32,11 @@ class LocalSourceImplTest {
     fun setUp() {
         Dispatchers.setMain(_testCoroutineDispatcher)
 
-        every { _mockedDao.insertTasks(any()) } returns emptyList()
+        every { _mockedDao.createTask(any()) } returns mockk()
         every { _mockedDao.getAllTasks() } returns emptyList()
         every { _mockedDao.getTasks(any()) } returns emptyList()
         every { _mockedDao.getTasksToUpload() } returns emptyList()
-        every { _mockedDao.getTasksLiveData(any()) } returns MutableLiveData<List<TaskEntity>>().apply {
+        every { _mockedDao.getTasksLiveData() } returns MutableLiveData<List<TaskEntity>>().apply {
             value = emptyList()
         }
     }
@@ -46,56 +47,57 @@ class LocalSourceImplTest {
     }
 
     @Test
-    fun createTasks() {
+    fun createTasks() = _testCoroutineScope.runBlockingTest {
         // Insert a list of tags
-        val list = listOf(
-            TaskEntity(name = "Task one")
-        )
-        _source.createTasks(list)
+        val task = TaskEntity(name = "Task one")
+        _source.createTask(task)
 
         // Verify the TasksDao is being called with the same list
-        verify(exactly = 1) { _mockedDao.insertTasks(list) }
+        verify(exactly = 1) { _mockedDao.createTask(task) }
     }
 
     @Test
-    fun createTasksWithEmptyList() {
-        // Insert a list of empty tags
-        val list = emptyList<TaskEntity>()
-        _source.createTasks(list)
-
-        // Verify the TasksDao is not being called since the list was empty
-        verify(exactly = 0) { _mockedDao.insertTasks(any()) }
-    }
-
-    @Test
-    fun getTasks() {
+    fun getTasks() = _testCoroutineScope.runBlockingTest {
         // Get all undone tasks
-        _source.getTasks(false)
+        _source.getAllTasks()
 
         // Verify the TasksDao has been called correctly
-        verify(exactly = 1) { _mockedDao.getTasks(false) }
+        verify(exactly = 1) { _mockedDao.getAllTasks() }
     }
 
     @Test
-    fun getPendingTasks() {
+    fun getPendingTasks() = _testCoroutineScope.runBlockingTest {
         // Get all done tasks
-        _source.getTasks(true)
+        _source.getAllTasks()
 
         // Verify the TasksDao has been called correctly
-        verify(exactly = 1) { _mockedDao.getTasks(true) }
+        verify(exactly = 1) { _mockedDao.getAllTasks() }
     }
 
     @Test
     fun getTasksLiveData() = _testCoroutineScope.runBlockingTest {
-        _source.getTasksLiveData(false).getOrAwaitValue()
+        _source.getAllTasksStream().getOrAwaitValue()
 
-        verify(exactly = 1) { _mockedDao.getTasksLiveData(false) }
+        verify(exactly = 1) { _mockedDao.getTasksLiveData() }
     }
 
     @Test
     fun getTasksToUpload() = _testCoroutineScope.runBlockingTest {
-        _source.getTasksToUpload()
+        _source.getUnSyncedTasks()
 
         verify(exactly = 1) { _mockedDao.getTasksToUpload() }
+    }
+
+    @Test
+    fun updateTask() = _testCoroutineScope.runBlockingTest {
+        // Preparation
+        var entity = TaskEntity(name = "Name")
+        every { _mockedDao.updateTask(any()) } returns entity
+
+        // Execution
+        _source.updateTask(entity)
+
+        // Verification
+        verify(exactly = 1) { _mockedDao.updateTask(entity) }
     }
 }
